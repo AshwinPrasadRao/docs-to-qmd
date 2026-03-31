@@ -125,20 +125,39 @@ def _extract_footnotes(doc: Document) -> dict[int, str]:
     Returns {footnote_id: markdown_text}.
     """
     footnotes: dict[int, str] = {}
+    fn_elem = None
+
+    # Strategy 1: standard python-docx accessor
     try:
         fn_part = doc.part.footnotes_part
-        if fn_part is None:
-            return footnotes
-        fn_elem = fn_part._element
-    except AttributeError:
+        if fn_part is not None:
+            fn_elem = fn_part._element
+    except Exception:
+        pass
+
+    # Strategy 2: walk the document part's relationships directly
+    # (catches cases where footnotes_part returns None due to reltype mismatch)
+    if fn_elem is None:
+        try:
+            for rel in doc.part.rels.values():
+                if hasattr(rel, "reltype") and "footnote" in rel.reltype.lower():
+                    fn_elem = rel.target_part._element
+                    break
+        except Exception:
+            pass
+
+    if fn_elem is None:
         return footnotes
 
     for fn in fn_elem.findall(qn("w:footnote")):
         fn_id_str = fn.get(qn("w:id"))
         if fn_id_str is None:
             continue
-        fn_id = int(fn_id_str)
-        if fn_id < 1:  # skip separator/continuation footnotes (ids 0, -1)
+        try:
+            fn_id = int(fn_id_str)
+        except ValueError:
+            continue
+        if fn_id < 1:  # skip separator/continuation footnotes (ids -1, 0)
             continue
         # Collect text from all paragraphs in the footnote
         text_parts = []
@@ -146,9 +165,12 @@ def _extract_footnotes(doc: Document) -> dict[int, str]:
             run_texts = []
             for r in p.findall(".//" + qn("w:r")):
                 for t in r.findall(qn("w:t")):
-                    run_texts.append(t.text or "")
-            text_parts.append("".join(run_texts).strip())
-        footnotes[fn_id] = " ".join(t for t in text_parts if t)
+                    if t.text:
+                        run_texts.append(t.text)
+            para_text = "".join(run_texts).strip()
+            if para_text:
+                text_parts.append(para_text)
+        footnotes[fn_id] = " ".join(text_parts)
     return footnotes
 
 
@@ -223,17 +245,26 @@ SKIP_STYLES = {"Title", "Subtitle", "Author", "title", "subtitle", "author"}
 PASSTHROUGH_PREFIXES = (":::", "[^", "![", "---", "<!-- ")
 
 
+def _strip_emphasis(text: str) -> str:
+    """Remove bold/italic markdown markers (**/**/*) from a string."""
+    return re.sub(r"\*+", "", text).strip()
+
+
 def _extract_literal_heading(text: str) -> Optional[tuple[str, str]]:
     """
     If text is a literal markdown heading like '# Foo' or '## Bar',
-    return (prefix, rest_of_text). Otherwise None.
-    Handles cases where the '#' might have been wrapped in bold by the converter.
+    return (prefix, clean_heading_text). Otherwise None.
+    Strips bold/italic markers from the heading text since headings have
+    their own styling and **...** inside headings renders as literal asterisks
+    in LaTeX/PDF output.
     """
     # Strip leading/trailing bold markers that may wrap the whole heading
     stripped = text.strip().lstrip("*").rstrip("*").strip()
     m = re.match(r"^(#{1,4})\s+(.+)$", stripped)
     if m:
-        return m.group(1), m.group(2).strip()
+        # Strip any remaining ** or * markers (e.g. "## **3****.2** Section")
+        heading_text = _strip_emphasis(m.group(2))
+        return m.group(1), heading_text
     return None
 
 
@@ -348,7 +379,10 @@ def convert(doc: Document, meta: dict, pdf_filename: str, images_dir: Path) -> s
         if heading_prefix:
             seen_heading = True
             inline = _para_to_inline_text(para)
-            raw_lines.append(f"{heading_prefix} {inline.strip()}")
+            # Strip bold/italic markers: headings are already styled; **...** in
+            # a heading produces literal asterisks in LaTeX/PDF output.
+            clean_heading = _strip_emphasis(inline)
+            raw_lines.append(f"{heading_prefix} {clean_heading}")
             raw_lines.append("")
             continue
 
