@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     gdebi-core \
+    perl \
+    ca-certificates \
     libglib2.0-0 \
     libfontconfig1 \
     libfreetype6 \
