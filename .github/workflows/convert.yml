@@ -72,6 +72,9 @@ jobs:
             biber lmodern fonts-texgyre fontconfig
           version: 1.0
 
+      - name: Generate XeLaTeX format file
+        run: sudo fmtutil-sys --byfmt xelatex
+
       - name: Install Inter font
         run: |
           wget -q "https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip"
