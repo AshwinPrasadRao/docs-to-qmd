@@ -14,8 +14,10 @@ Handles:
 - Pass-through of existing Quarto syntax (:::, ![, etc.)
 """
 
+import io
 import re
 import shutil
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -119,34 +121,20 @@ def _para_to_inline_text(para) -> str:
 
 # ── Footnote extraction ────────────────────────────────────────────────────────
 
-def _extract_footnotes(doc: Document) -> dict[int, str]:
+def _extract_footnotes_from_bytes(docx_bytes: bytes) -> dict[int, str]:
     """
-    Extract Word footnote text keyed by footnote ID.
+    Extract Word footnote text by reading word/footnotes.xml directly
+    from the DOCX zip.  Bypasses python-docx relationship lookup entirely.
     Returns {footnote_id: markdown_text}.
     """
     footnotes: dict[int, str] = {}
-    fn_elem = None
-
-    # Strategy 1: standard python-docx accessor
     try:
-        fn_part = doc.part.footnotes_part
-        if fn_part is not None:
-            fn_elem = fn_part._element
+        with zipfile.ZipFile(io.BytesIO(docx_bytes)) as z:
+            if "word/footnotes.xml" not in z.namelist():
+                return footnotes
+            with z.open("word/footnotes.xml") as f:
+                fn_elem = etree.parse(f).getroot()
     except Exception:
-        pass
-
-    # Strategy 2: walk the document part's relationships directly
-    # (catches cases where footnotes_part returns None due to reltype mismatch)
-    if fn_elem is None:
-        try:
-            for rel in doc.part.rels.values():
-                if hasattr(rel, "reltype") and "footnote" in rel.reltype.lower():
-                    fn_elem = rel.target_part._element
-                    break
-        except Exception:
-            pass
-
-    if fn_elem is None:
         return footnotes
 
     for fn in fn_elem.findall(qn("w:footnote")):
@@ -159,7 +147,50 @@ def _extract_footnotes(doc: Document) -> dict[int, str]:
             continue
         if fn_id < 1:  # skip separator/continuation footnotes (ids -1, 0)
             continue
-        # Collect text from all paragraphs in the footnote
+        text_parts = []
+        for p in fn.findall(qn("w:p")):
+            run_texts = []
+            for r in p.findall(".//" + qn("w:r")):
+                for t in r.findall(qn("w:t")):
+                    if t.text:
+                        run_texts.append(t.text)
+            para_text = "".join(run_texts).strip()
+            if para_text:
+                text_parts.append(para_text)
+        footnotes[fn_id] = " ".join(text_parts)
+    return footnotes
+
+
+def _extract_footnotes(doc: Document) -> dict[int, str]:
+    """Fallback footnote extraction via python-docx (used when raw bytes unavailable)."""
+    footnotes: dict[int, str] = {}
+    fn_elem = None
+    try:
+        fn_part = doc.part.footnotes_part
+        if fn_part is not None:
+            fn_elem = fn_part._element
+    except Exception:
+        pass
+    if fn_elem is None:
+        try:
+            for rel in doc.part.rels.values():
+                if hasattr(rel, "reltype") and "footnote" in rel.reltype.lower():
+                    fn_elem = rel.target_part._element
+                    break
+        except Exception:
+            pass
+    if fn_elem is None:
+        return footnotes
+    for fn in fn_elem.findall(qn("w:footnote")):
+        fn_id_str = fn.get(qn("w:id"))
+        if fn_id_str is None:
+            continue
+        try:
+            fn_id = int(fn_id_str)
+        except ValueError:
+            continue
+        if fn_id < 1:
+            continue
         text_parts = []
         for p in fn.findall(qn("w:p")):
             run_texts = []
@@ -176,15 +207,26 @@ def _extract_footnotes(doc: Document) -> dict[int, str]:
 
 # ── Image extraction ───────────────────────────────────────────────────────────
 
+def _image_prefix(pdf_filename: str) -> str:
+    """
+    Derive a short image prefix from the pdf_filename.
+    Strips a trailing date pattern and lowercases the result.
+      'GAGEChina-30032026'    → 'gagechina'
+      'EU-Rearm-India-09032026' → 'eu_rearm_india'
+    """
+    stem = re.sub(r"[-_]\d{6,8}$", "", pdf_filename)
+    return stem.lower().replace("-", "_").replace(" ", "_")
+
+
 @dataclass
 class ImageRef:
     index: int
-    filename: str  # e.g. "img_1.png"
+    filename: str  # e.g. "gagechina_1.png"
     blob: bytes
     para_index: int  # paragraph index where the image appears
 
 
-def _extract_images(doc: Document) -> list[ImageRef]:
+def _extract_images(doc: Document, img_prefix: str = "img") -> list[ImageRef]:
     """
     Walk all paragraphs and extract embedded images.
     Returns list of ImageRef in document order.
@@ -212,7 +254,7 @@ def _extract_images(doc: Document) -> list[ImageRef]:
                 continue
             img_counter += 1
             ext = Path(rel.target_ref).suffix or ".png"
-            filename = f"img_{img_counter}{ext}"
+            filename = f"{img_prefix}_{img_counter}{ext}"
             images.append(
                 ImageRef(
                     index=img_counter,
@@ -305,15 +347,27 @@ def _footnote_ref_ids_in_para(para) -> list[int]:
 
 # ── Main conversion ───────────────────────────────────────────────────────────
 
-def convert(doc: Document, meta: dict, pdf_filename: str, images_dir: Path) -> str:
+def convert(
+    doc: Document,
+    meta: dict,
+    pdf_filename: str,
+    images_dir: Path,
+    docx_bytes: Optional[bytes] = None,
+) -> str:
     """
     Convert a python-docx Document to QMD string.
     Extracted images are saved into images_dir.
+    Pass docx_bytes (raw DOCX file bytes) for reliable footnote extraction.
     Returns the full QMD content as a string.
     """
     # 1. Extract footnotes and images up-front
-    word_footnotes = _extract_footnotes(doc)
-    image_refs = _extract_images(doc)
+    if docx_bytes is not None:
+        word_footnotes = _extract_footnotes_from_bytes(docx_bytes)
+    else:
+        word_footnotes = _extract_footnotes(doc)
+
+    img_prefix = _image_prefix(pdf_filename)
+    image_refs = _extract_images(doc, img_prefix)
 
     # Save images to disk
     for img in image_refs:
@@ -349,9 +403,23 @@ def convert(doc: Document, meta: dict, pdf_filename: str, images_dir: Path) -> s
     seen_heading = False
 
     for para_idx, para in enumerate(doc.paragraphs):
-        # Emit any images that appear in this paragraph first
+        # Emit any images that appear in this paragraph.
+        # PDF: raw LaTeX spanning full text+margin width (avoids narrow sidenote column).
+        # HTML: regular markdown image at 100% width.
+        _FW = r"\dimexpr\textwidth+\marginparsep+\marginparwidth\relax"
         for img in para_to_images.get(para_idx, []):
+            p = f"images/{img.filename}"
+            raw_lines.append('::: {.content-visible unless-format="pdf"}')
             raw_lines.append(f"![](images/{img.filename}){{width=100%}}")
+            raw_lines.append(":::")
+            raw_lines.append("")
+            raw_lines.append('::: {.content-visible when-format="pdf"}')
+            raw_lines.append("```{=latex}")
+            raw_lines.append(rf"\noindent\makebox[{_FW}][l]{{%")
+            raw_lines.append(rf"  \includegraphics[width={_FW}]{{{p}}}%")
+            raw_lines.append(r"}")
+            raw_lines.append("```")
+            raw_lines.append(":::")
             raw_lines.append("")
 
         style_name = para.style.name if para.style else "Normal"

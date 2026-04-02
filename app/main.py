@@ -51,6 +51,7 @@ async def api_convert(
 
     # ── 2. Parse DOCX ──────────────────────────────────────────────────────
     try:
+        docx_bytes = docx_path.read_bytes()
         doc = Document(str(docx_path))
     except Exception as exc:
         raise HTTPException(
@@ -78,7 +79,7 @@ async def api_convert(
 
         # ── 4. Convert DOCX → QMD ─────────────────────────────────────────
         try:
-            qmd_content = convert(doc, meta, pdf_filename, images_dir)
+            qmd_content = convert(doc, meta, pdf_filename, images_dir, docx_bytes=docx_bytes)
         except Exception as exc:
             raise HTTPException(
                 status_code=500,

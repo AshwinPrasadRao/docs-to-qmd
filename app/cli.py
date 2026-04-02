@@ -58,7 +58,8 @@ def main() -> None:
 
     # ── Fetch DOCX ────────────────────────────────────────────────────────────
     print(f"[1/3] Fetching Google Doc: {args.url}")
-    docx_path = fetch_docx(args.url)   # returns a Path
+    docx_path = fetch_docx(args.url)      # returns a Path
+    docx_bytes = docx_path.read_bytes()   # read before passing to Document
     doc = Document(docx_path)
 
     # ── Convert ───────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ def main() -> None:
         images_dir = Path(tmp) / "images"
         images_dir.mkdir()
 
-        qmd_content = convert(doc, meta, args.pdf_filename, images_dir)
+        qmd_content = convert(doc, meta, args.pdf_filename, images_dir, docx_bytes=docx_bytes)
 
         render_label = "with PDF render" if args.render_pdf else "QMD only"
         print(f"[3/3] Packaging ({render_label})...")
