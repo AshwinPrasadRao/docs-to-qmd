@@ -75,6 +75,10 @@ jobs:
           version: "1.5.57"
           tinytex: true   # installs TinyTeX into ~/.TinyTeX
 
+      # TinyTeX installs to ~/.TinyTeX — add its bin dir to PATH
+      - name: Add TinyTeX to PATH
+        run: echo "$HOME/.TinyTeX/bin/x86_64-linux" >> $GITHUB_PATH
+
       # Install xelatex + essential packages into TinyTeX.
       # TinyTeX auto-installs missing packages at render time, but xetex
       # (the format itself) and the fonts must be present upfront.
