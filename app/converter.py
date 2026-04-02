@@ -409,6 +409,7 @@ def convert(
         _FW = r"\dimexpr\textwidth+\marginparsep+\marginparwidth\relax"
         for img in para_to_images.get(para_idx, []):
             p = f"images/{img.filename}"
+            raw_lines.append("")   # blank line required before a Quarto div fence
             raw_lines.append('::: {.content-visible unless-format="pdf"}')
             raw_lines.append(f"![](images/{img.filename}){{width=100%}}")
             raw_lines.append(":::")
