@@ -43,10 +43,11 @@ jobs:
           cp docs/index.html /tmp/ghpages/index.html
           cp docs/style.css  /tmp/ghpages/style.css
           cp docs/app.js     /tmp/ghpages/app.js
+          cp docs/logo.png   /tmp/ghpages/logo.png
           touch /tmp/ghpages/.nojekyll
 
           cd /tmp/ghpages
-          git add index.html style.css app.js .nojekyll
+          git add index.html style.css app.js logo.png .nojekyll
           if git diff --cached --quiet; then
             echo "No frontend changes to deploy."
           else
