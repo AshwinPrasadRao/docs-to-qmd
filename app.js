@@ -4,6 +4,12 @@
   "use strict";
 
   // ── Config ─────────────────────────────────────────────────────────────────
+  // Fine-grained PAT with Actions: Read & Write on this repo only.
+  // Create one at https://github.com/settings/personal-access-tokens/new
+  // (Repository access → This repository → Actions → Read and Write)
+  // then paste it here. Everyone on the team uses this same page — no individual tokens needed.
+  const SHARED_TOKEN = "PASTE_YOUR_TOKEN_HERE";
+
   // Update REPO if the repository is ever renamed.
   const REPO  = "shakunasanaxe/Takshashila-webpub-render";
   const OWNER = REPO.split("/")[0];
@@ -21,6 +27,7 @@
   const form        = document.getElementById("convertForm");
   const convertBtn  = document.getElementById("convertBtn");
   const btnLabel    = convertBtn.querySelector(".btn-label");
+  const btnArrow    = convertBtn.querySelector("#btnArrow");
   const spinnerEl   = convertBtn.querySelector(".spinner");
 
   const progressArea = document.getElementById("progressArea");
@@ -38,52 +45,6 @@
   const dlZip        = document.getElementById("dlZip");
   const errorActionsLink = document.getElementById("errorActionsLink");
 
-  const ghTokenInput = document.getElementById("gh_token");
-  const tokenStatus  = document.getElementById("tokenStatus");
-  const saveTokenBtn = document.getElementById("saveToken");
-  const clearTokenBtn = document.getElementById("clearToken");
-  const toggleTokenBtn = document.getElementById("toggleToken");
-
-  // ── Token management ────────────────────────────────────────────────────────
-  const TOKEN_KEY = "tsh_gh_token";
-
-  function loadToken() {
-    const t = localStorage.getItem(TOKEN_KEY) || "";
-    if (t) {
-      ghTokenInput.value = t;
-      tokenStatus.textContent = "✓ Token saved in browser.";
-      tokenStatus.style.color = "var(--success)";
-      clearTokenBtn.hidden = false;
-    }
-  }
-
-  saveTokenBtn.addEventListener("click", () => {
-    const t = ghTokenInput.value.trim();
-    if (!t.startsWith("ghp_") && !t.startsWith("github_pat_")) {
-      tokenStatus.textContent = "⚠ That doesn't look like a GitHub token (should start with ghp_ or github_pat_).";
-      tokenStatus.style.color = "var(--error)";
-      return;
-    }
-    localStorage.setItem(TOKEN_KEY, t);
-    tokenStatus.textContent = "✓ Token saved in browser.";
-    tokenStatus.style.color = "var(--success)";
-    clearTokenBtn.hidden = false;
-  });
-
-  clearTokenBtn.addEventListener("click", () => {
-    localStorage.removeItem(TOKEN_KEY);
-    ghTokenInput.value = "";
-    tokenStatus.textContent = "Token cleared.";
-    tokenStatus.style.color = "var(--muted)";
-    clearTokenBtn.hidden = true;
-  });
-
-  toggleTokenBtn.addEventListener("click", () => {
-    const isPassword = ghTokenInput.type === "password";
-    ghTokenInput.type = isPassword ? "text" : "password";
-  });
-
-  loadToken();
 
   // ── Prefill today's date ────────────────────────────────────────────────────
   const dateInput = document.getElementById("date");
@@ -96,10 +57,9 @@
     e.preventDefault();
     if (!validateForm()) return;
 
-    const token = ghTokenInput.value.trim() || localStorage.getItem(TOKEN_KEY) || "";
-    if (!token) {
-      alert("Please enter and save your GitHub Personal Access Token (Step 0).");
-      ghTokenInput.focus();
+    const token = SHARED_TOKEN;
+    if (!token || token === "PASTE_YOUR_TOKEN_HERE") {
+      alert("No GitHub token configured. Open app.js and set SHARED_TOKEN to a valid fine-grained PAT.");
       return;
     }
 
@@ -308,6 +268,7 @@
   function setLoading(on) {
     convertBtn.disabled = on;
     btnLabel.textContent = on ? "Converting…" : "Convert";
+    btnArrow.hidden = on;
     spinnerEl.hidden = !on;
   }
 
