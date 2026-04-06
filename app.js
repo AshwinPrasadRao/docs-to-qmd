@@ -8,7 +8,7 @@
   // Create one at https://github.com/settings/personal-access-tokens/new
   // (Repository access → This repository → Actions → Read and Write)
   // then paste it here. Everyone on the team uses this same page — no individual tokens needed.
-  const SHARED_TOKEN = "PASTE_YOUR_TOKEN_HERE";
+  const SHARED_TOKEN = "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";
 
   // Update REPO if the repository is ever renamed.
   const REPO  = "shakunasanaxe/Takshashila-webpub-render";
