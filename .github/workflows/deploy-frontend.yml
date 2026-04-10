@@ -1,59 +1,51 @@
 name: Deploy Frontend
 
-# Pushes docs/ to the root of the gh-pages branch whenever
-# the frontend files change on main.
+# Builds docs/ into a Pages artifact (token injected from secret — never committed to git)
+# and deploys via GitHub Actions Pages deployment.
 on:
   push:
     branches: [main]
     paths:
       - "docs/**"
-  workflow_dispatch:   # allow manual trigger
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Deploy docs/ to gh-pages
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Build site with injected token
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir _site
+          cp docs/index.html _site/index.html
+          cp docs/style.css  _site/style.css
+          cp docs/logo.png   _site/logo.png
+          sed "s/PASTE_YOUR_TOKEN_HERE/${{ secrets.SHARED_TOKEN }}/" docs/app.js > _site/app.js
+          touch _site/.nojekyll
 
-          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
-            git worktree add /tmp/ghpages origin/gh-pages
-          else
-            git worktree add --orphan -b gh-pages /tmp/ghpages
-            touch /tmp/ghpages/.nojekyll
-            cd /tmp/ghpages
-            git add .nojekyll
-            git commit -m "chore: initialize gh-pages"
-            git push origin gh-pages
-            cd -
-          fi
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
 
-          # Inject the shared token (stored as a repo secret, never in git)
-          sed "s/PASTE_YOUR_TOKEN_HERE/${{ secrets.SHARED_TOKEN }}/" docs/app.js > /tmp/app_injected.js
-
-          # Copy frontend files to gh-pages root (outputs/ is untouched)
-          cp docs/index.html       /tmp/ghpages/index.html
-          cp docs/style.css        /tmp/ghpages/style.css
-          cp /tmp/app_injected.js  /tmp/ghpages/app.js
-          cp docs/logo.png         /tmp/ghpages/logo.png
-          touch /tmp/ghpages/.nojekyll
-
-          cd /tmp/ghpages
-          git add index.html style.css app.js logo.png .nojekyll
-          if git diff --cached --quiet; then
-            echo "No frontend changes to deploy."
-          else
-            git commit -m "deploy: update frontend from main"
-            git push origin HEAD:gh-pages
-          fi
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -133,7 +133,7 @@
 
     // ── Poll for the output ZIP on gh-pages ───────────────────────────────────
     setProgressMsg("Converting document…");
-    const outputUrl = `${PAGES_BASE}/outputs/${runToken}/document.zip`;
+    const outputUrl = `https://raw.githubusercontent.com/${OWNER}/${NAME}/gh-pages/outputs/${runToken}/document.zip`;
     const stem      = inputs.pdf_filename;
 
     let success = false;
