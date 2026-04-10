@@ -8,7 +8,7 @@
   // Create one at https://github.com/settings/personal-access-tokens/new
   // (Repository access → This repository → Actions → Read and Write)
   // then paste it here. Everyone on the team uses this same page — no individual tokens needed.
-  const SHARED_TOKEN = "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";
+  const SHARED_TOKEN = "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";
 
   // Update REPO if the repository is ever renamed.
   const REPO  = "shakunasanaxe/Takshashila-webpub-render";
@@ -58,7 +58,7 @@
     if (!validateForm()) return;
 
     const token = SHARED_TOKEN;
-    if (!token || token === "PASTE_YOUR_TOKEN_HERE") {
+    if (!token || token === "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") {
       alert("No GitHub token configured. Open app.js and set SHARED_TOKEN to a valid fine-grained PAT.");
       return;
     }
