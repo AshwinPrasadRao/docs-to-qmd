@@ -34,6 +34,7 @@ function ghHeaders(token) {
     Authorization:          `Bearer ${token}`,
     Accept:                 "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent":           "tsh-converter-proxy/1.0",
   };
 }
 
@@ -57,7 +58,8 @@ export default {
           body:    await request.text(),
         }
       );
-      return new Response(null, { status: resp.status, headers: CORS });
+      const body = resp.ok ? null : await resp.text();
+      return new Response(body, { status: resp.status, headers: CORS });
     }
 
     // ── GET /find-run?after=EPOCH_MS ──────────────────────────────────────

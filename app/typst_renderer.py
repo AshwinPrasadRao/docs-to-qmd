@@ -195,6 +195,8 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
         url = m.group(2)
         # Escape double-quotes in URL
         url = url.replace('"', '%22')
+        # Escape $ in link text so Typst doesn't treat it as math mode
+        link_text = link_text.replace('$', r'\$')
         return f'#link("{url}")[{link_text}]'
     text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', replace_link, text)
 
