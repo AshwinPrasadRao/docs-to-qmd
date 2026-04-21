@@ -204,6 +204,10 @@ def _convert_inline(text: str, footnotes: dict[str, str] | None = None) -> str:
     # Strategy: split on existing #... sequences, escape only plain-text segments
     text = _escape_hashes(text)
 
+    # Escape bare $ in plain text (math mode trigger in Typst).
+    # The (?<!\\) lookbehind skips already-escaped \$ from link text above.
+    text = re.sub(r'(?<!\\)\$', r'\\$', text)
+
     return text
 
 
