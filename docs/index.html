@@ -25,29 +25,6 @@
   <main>
     <form id="convertForm" novalidate>
 
-      <!-- ── Token ─────────────────────────────────────────────────────────── -->
-      <section class="card" id="tokenCard">
-        <h2><span class="step">0</span> GitHub Access Token</h2>
-        <p class="card-desc">Required once per browser. Stored locally — never sent anywhere except GitHub.</p>
-        <div class="tip">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" /></svg>
-          Ask your admin for the team token, or create a <strong>Classic PAT</strong> at
-          <a href="https://github.com/settings/tokens/new?description=Takshashila+Converter&scopes=workflow" target="_blank" rel="noopener">github.com/settings/tokens</a>
-          with the <strong><code>workflow</code></strong> scope. Paste it below and click Save.
-        </div>
-        <div class="token-row">
-          <input type="password" id="gh_token" name="gh_token"
-            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-            autocomplete="off" spellcheck="false" />
-          <button type="button" id="toggleToken" class="btn-icon" title="Show / hide token" aria-label="Toggle token visibility">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /><path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clip-rule="evenodd" /></svg>
-          </button>
-          <button type="button" id="saveToken" class="btn-secondary btn-sm">Save</button>
-          <button type="button" id="clearToken" class="btn-secondary btn-sm btn-danger" hidden>Clear</button>
-        </div>
-        <p id="tokenStatus" class="field-hint"></p>
-      </section>
-
       <!-- ── Step 1: Google Doc URL ─────────────────────────────────────────── -->
       <section class="card">
         <h2><span class="step">1</span> Google Doc URL</h2>
@@ -128,6 +105,11 @@
           </div>
           <p class="field-hint">Use the format <code>ShortTitle-DDMMYYYY</code>. No spaces.</p>
         </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="render_pdf" name="render_pdf" checked />
+          <label for="render_pdf">Render PDF (powered by Typst)</label>
+        </div>
       </section>
 
       <!-- ── Aside tip ───────────────────────────────────────────────────────── -->
@@ -154,20 +136,6 @@ Bond Credit Ratings such as AAA (highest)…
     <!-- ── Progress area ──────────────────────────────────────────────────── -->
     <div id="progressArea" hidden>
       <section class="card progress-card">
-        <div class="progress-steps" id="progressSteps">
-          <div class="prog-step" id="pQueued">
-            <span class="prog-dot"></span>
-            <span class="prog-label">Job queued</span>
-          </div>
-          <div class="prog-step" id="pRunning">
-            <span class="prog-dot"></span>
-            <span class="prog-label">Running conversion (~2–4 min)</span>
-          </div>
-          <div class="prog-step" id="pPublishing">
-            <span class="prog-dot"></span>
-            <span class="prog-label">Publishing output</span>
-          </div>
-        </div>
         <p id="progressMsg" class="progress-msg"></p>
         <a id="actionsLink" href="#" target="_blank" rel="noopener" class="btn-text" hidden>
           View job on GitHub Actions →
@@ -182,9 +150,7 @@ Bond Credit Ratings such as AAA (highest)…
         <h2>Done!</h2>
         <p id="resultMsg"></p>
         <div class="download-buttons">
-          <a id="dlZip" href="#" class="btn-primary" target="_blank" rel="noopener">
-            Download .zip (QMD + PDF + images)
-          </a>
+          <a id="dlZip" href="#" class="btn-primary" download>Download .zip (QMD + PDF + images)</a>
         </div>
         <button class="btn-text" id="convertAnother">Convert another document →</button>
       </section>
@@ -203,7 +169,7 @@ Bond Credit Ratings such as AAA (highest)…
 
   <footer>
     <p>Internal tool — Takshashila Institution &nbsp;·&nbsp;
-      <a href="https://github.com/shakunasanaxe/Takshashila-webpub-render" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/AshwinPrasadRao/Takshashila-webpub" target="_blank" rel="noopener">GitHub</a>
     </p>
   </footer>
 

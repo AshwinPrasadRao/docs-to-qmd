@@ -8,3 +8,4 @@ debug_tmp/
 *.zip
 *.pdf
 *.docx
+worker/.wrangler/

@@ -43,7 +43,7 @@
         body: formData,
       });
 
-      zipWarning = resp.headers.get("X-Quarto-Warning");
+      zipWarning = resp.headers.get("X-Typst-Warning");
 
       if (!resp.ok) {
         let detail = `Server error (${resp.status})`;

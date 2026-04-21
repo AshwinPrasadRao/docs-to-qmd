@@ -7,21 +7,32 @@ Endpoints:
   GET  /api/health  → liveness check
 """
 
-import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import Response, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from docx import Document
 
+import tempfile
+
 from gdocs import fetch_docx
 from converter import convert
-from renderer import render_and_zip, QuartoNotFoundError, RenderError
+from renderer import render_and_zip, TypstNotFoundError, RenderError
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 
 app = FastAPI(title="Takshashila QMD Converter", docs_url=None, redoc_url=None)
+
+# Allow the GitHub Pages frontend (and local dev) to call this API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
 
 
 @app.get("/api/health")
@@ -61,7 +72,7 @@ async def api_convert(
     finally:
         docx_path.unlink(missing_ok=True)
 
-    # ── 3. Extract images into a temp dir ──────────────────────────────────
+    # ── 3. Convert DOCX → QMD ──────────────────────────────────────────────
     with tempfile.TemporaryDirectory() as img_tmp:
         images_dir = Path(img_tmp) / "images"
         images_dir.mkdir()
@@ -77,16 +88,12 @@ async def api_convert(
             "docversion": docversion,
         }
 
-        # ── 4. Convert DOCX → QMD ─────────────────────────────────────────
         try:
             qmd_content = convert(doc, meta, pdf_filename, images_dir, docx_bytes=docx_bytes)
         except Exception as exc:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Conversion error: {exc}",
-            )
+            raise HTTPException(status_code=500, detail=f"Conversion error: {exc}")
 
-        # ── 5. Render PDF + zip ───────────────────────────────────────────
+        # ── 4. Render PDF + zip ───────────────────────────────────────────
         try:
             zip_bytes = render_and_zip(
                 qmd_content=qmd_content,
@@ -94,8 +101,8 @@ async def api_convert(
                 pdf_filename=pdf_filename,
                 render_pdf=render_pdf,
             )
-        except QuartoNotFoundError:
-            # Quarto not installed — return QMD-only zip with a warning header
+        except TypstNotFoundError:
+            # Typst not installed — return QMD-only zip with a warning header
             zip_bytes = render_and_zip(
                 qmd_content=qmd_content,
                 images_dir=images_dir,
@@ -107,19 +114,13 @@ async def api_convert(
                 media_type="application/zip",
                 headers={
                     "Content-Disposition": f'attachment; filename="{pdf_filename}.zip"',
-                    "X-Quarto-Warning": "Quarto not installed; PDF skipped.",
+                    "X-Typst-Warning": "Typst not installed; PDF skipped.",
                 },
             )
         except RenderError as exc:
-            raise HTTPException(
-                status_code=500,
-                detail=f"PDF render failed: {exc}",
-            )
+            raise HTTPException(status_code=500, detail=f"PDF render failed: {exc}")
         except Exception as exc:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Unexpected error during rendering: {exc}",
-            )
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}")
 
     return Response(
         content=zip_bytes,
@@ -130,7 +131,6 @@ async def api_convert(
     )
 
 
-# ── Serve the static frontend ──────────────────────────────────────────────────
-# Mount AFTER API routes so /api/* isn't caught by the static handler.
+# Serve the static frontend (local dev only — production uses GitHub Pages).
 if STATIC_DIR.exists():
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

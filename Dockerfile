@@ -2,43 +2,31 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies + TeX Live
+# System deps: font tooling only (no TeX Live, no Quarto)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     unzip \
-    gdebi-core \
-    perl \
+    xz-utils \
     ca-certificates \
     fontconfig \
-    libglib2.0-0 \
-    libfontconfig1 \
-    libfreetype6 \
-    libpng-dev \
-    libjpeg-dev \
-    texlive-xetex \
-    texlive-fonts-recommended \
-    texlive-fonts-extra \
-    texlive-plain-generic \
-    texlive-latex-extra \
-    texlive-bibtex-extra \
-    biber \
-    lmodern \
     fonts-texgyre \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Inter font (required by pdf-template.tex)
+# Install Inter font (body text)
 RUN wget -q "https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip" \
     && unzip -q Inter-4.0.zip -d /tmp/inter \
     && find /tmp/inter -name "*.ttf" -exec cp {} /usr/local/share/fonts/ \; \
     && fc-cache -f \
     && rm -rf Inter-4.0.zip /tmp/inter
 
-# Install Quarto CLI
-ARG QUARTO_VERSION=1.5.57
-RUN wget -q "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb" \
-    && gdebi --non-interactive "quarto-${QUARTO_VERSION}-linux-amd64.deb" \
-    && rm "quarto-${QUARTO_VERSION}-linux-amd64.deb"
+# Install Typst CLI (single static binary, ~30 MB)
+ARG TYPST_VERSION=0.13.1
+RUN wget -q "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
+    && tar -xf "typst-x86_64-unknown-linux-musl.tar.xz" \
+    && mv "typst-x86_64-unknown-linux-musl/typst" /usr/local/bin/typst \
+    && chmod +x /usr/local/bin/typst \
+    && rm -rf "typst-x86_64-unknown-linux-musl.tar.xz" "typst-x86_64-unknown-linux-musl"
 
 # Python app
 WORKDIR /app

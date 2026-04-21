@@ -1,0 +1,190 @@
+// Takshashila Institution — Typst document template
+// Body font: Inter  |  Header/serif font: TeX Gyre Pagella
+// Primary colour: dark maroon #610D3D
+
+#let primary = rgb(97, 13, 61)
+
+// ── Aside / margin note ─────────────────────────────────────────────────────
+// Placed into the right margin (0.3 in gap + 2 in wide).
+#let aside(body) = place(
+  top + right,
+  float: false,
+  dx: 7.62mm,
+  box(width: 50.8mm)[
+    #line(length: 100%, stroke: 0.5pt + primary)
+    #v(2pt, weak: true)
+    #set text(fill: primary, size: 8pt, font: "TeX Gyre Pagella")
+    #set par(spacing: 0.5em)
+    #body
+    #v(2pt, weak: true)
+    #line(length: 100%, stroke: 0.5pt + primary)
+  ]
+)
+
+// ── Main template function ──────────────────────────────────────────────────
+// Usage:
+//   #show: takshashila-doc.with(title: [...], authors: ("A", "B"), ...)
+#let takshashila-doc(
+  title: [],
+  subtitle: [],
+  authors: (),
+  date: "",
+  tldr: [],
+  doctype: "",
+  docversion: "",
+  body,
+) = {
+
+  // ── Title page ─────────────────────────────────────────────────────────
+  set page(
+    paper: "a4",
+    margin: (left: 25.4mm, right: 38.1mm, top: 38.1mm, bottom: 38.1mm),
+    fill: primary,
+    header: none,
+    footer: none,
+    numbering: none,
+  )
+  set text(fill: white, font: "TeX Gyre Pagella", size: 10pt)
+  set par(spacing: 0.65em, first-line-indent: 0pt)
+
+  // Logo
+  image("assets/main-logo-dark.png", width: 60mm)
+  v(10mm)
+
+  // Title
+  text(size: 36pt, weight: "bold")[#title]
+  v(6pt)
+
+  // Subtitle
+  if type(subtitle) == str {
+    if subtitle != "" {
+      text(size: 24pt, weight: "bold")[#subtitle]
+      v(14pt)
+    } else { v(6pt) }
+  } else {
+    text(size: 24pt, weight: "bold")[#subtitle]
+    v(14pt)
+  }
+
+  // Authors, doctype, docversion
+  if authors.len() > 0 {
+    text(size: 14pt)[#authors.join(", ")]
+    linebreak()
+  }
+  if doctype != "" {
+    text(size: 12pt)[#doctype]
+    linebreak()
+  }
+  if docversion != "" {
+    text(size: 12pt)[#docversion]
+  }
+  v(32pt)
+
+  // TL;DR
+  if type(tldr) == str {
+    if tldr != "" {
+      text(size: 12pt)[#tldr]
+      v(32pt)
+    }
+  } else {
+    text(size: 12pt)[#tldr]
+    v(32pt)
+  }
+
+  // Recommended citation
+  let author-str = authors.join(", ")
+  text(size: 10pt, style: "italic")[Recommended Citation: ]
+  text(size: 10pt)[#author-str, "#title", #if doctype != "" [#doctype, ]#if docversion != "" [#docversion, ]The Takshashila Institution]
+  v(8pt)
+  text(size: 12pt)[© The Takshashila Institution, 2025]
+
+
+  // ── Body pages ─────────────────────────────────────────────────────────
+  set page(
+    paper: "a4",
+    margin: (left: 25.4mm, right: 76.2mm, top: 38.1mm, bottom: 38.1mm),
+    fill: white,
+    numbering: "1",
+    header: {
+      set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold")
+      grid(
+        columns: (1fr, 1fr),
+        align(left)[#doctype],
+        align(right)[#title],
+      )
+      v(-4pt)
+      line(length: 100%, stroke: 0.5pt + primary)
+    },
+    footer: {
+      line(length: 100%, stroke: 0.5pt + primary)
+      v(-4pt)
+      set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold")
+      grid(
+        columns: (1fr, 1fr),
+        align(left)[#counter(page).display()],
+        align(right)[TAKSHASHILA INSTITUTION],
+      )
+    },
+  )
+
+  set text(fill: black, font: "Inter", size: 10pt)
+  set par(spacing: 0.65em, first-line-indent: 0pt)
+
+  show heading.where(level: 1): it => block[
+    #v(1em, weak: true)
+    #text(size: 13pt, weight: "bold", fill: primary, it.body)
+    #v(0.4em, weak: true)
+  ]
+  show heading.where(level: 2): it => block[
+    #v(0.8em, weak: true)
+    #text(size: 11.5pt, weight: "bold", it.body)
+    #v(0.3em, weak: true)
+  ]
+  show heading.where(level: 3): it => block[
+    #v(0.6em, weak: true)
+    #text(size: 10.5pt, weight: "bold", it.body)
+    #v(0.2em, weak: true)
+  ]
+  show heading.where(level: 4): it => block[
+    #v(0.5em, weak: true)
+    #text(size: 10pt, weight: "bold", style: "italic", it.body)
+    #v(0.2em, weak: true)
+  ]
+
+  // Links in blue
+  show link: it => text(fill: rgb(0, 70, 180), it)
+
+  body
+
+
+  // ── Back page ───────────────────────────────────────────────────────────
+  set page(
+    paper: "a4",
+    fill: primary,
+    header: none,
+    footer: none,
+    numbering: none,
+    margin: (left: 25.4mm, right: 25.4mm, top: 38.1mm, bottom: 38.1mm),
+  )
+  set text(fill: white, font: "TeX Gyre Pagella", size: 16pt)
+  set par(spacing: 0.8em)
+
+  image("assets/main-logo-dark.png", width: 60mm)
+  v(20pt)
+
+  [The Takshashila Institution is an independent centre for research and
+  education in public policy. It is a non-partisan, non-profit organisation
+  that advocates the values of freedom, openness, tolerance, pluralism, and
+  responsible citizenship. It seeks to transform India through better public
+  policies, bridging the governance gap by developing better public servants,
+  civil society leaders, professionals, and informed citizens.
+
+  Takshashila creates change by connecting good people, to good ideas and
+  good networks. It produces independent policy research in a number of areas
+  of governance, it grooms civic leaders through its online education
+  programmes and engages in public discourse through its publications and
+  digital media.]
+
+  v(30pt)
+  [© The Takshashila Institution, 2025]
+}
