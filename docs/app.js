@@ -93,7 +93,7 @@
       return;
     }
 
-    const REPO = "AshwinPrasadRao/Takshashila-webpub";
+    const REPO = "AshwinPrasadRao/docs-to-qmd";
     if (actionsLink) {
       actionsLink.href = `https://github.com/${REPO}/actions/runs/${runId}`;
       actionsLink.hidden = false;
