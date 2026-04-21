@@ -102,9 +102,11 @@ def render_and_zip(
 
             # Compile PDF
             out_pdf = work / f"{pdf_filename}.pdf"
+            has_logo = (assets / "main-logo-dark.png").exists()
+            typst_inputs = ["--input", "has-logo=true"] if has_logo else []
             try:
                 result = subprocess.run(
-                    [typst, "compile", str(typ_path), str(out_pdf)],
+                    [typst, "compile", *typst_inputs, str(typ_path), str(out_pdf)],
                     cwd=str(work),
                     capture_output=True,
                     text=True,

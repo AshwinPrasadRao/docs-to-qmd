@@ -47,8 +47,10 @@
   set text(fill: white, font: "TeX Gyre Pagella", size: 10pt)
   set par(spacing: 0.65em, first-line-indent: 0pt)
 
-  // Logo
-  image("assets/main-logo-dark.png", width: 60mm)
+  // Logo (optional — renderer passes --input has-logo=true only when file exists)
+  if sys.inputs.at("has-logo", default: "false") == "true" {
+    image("assets/main-logo-dark.png", width: 60mm)
+  }
   v(10mm)
 
   // Title
