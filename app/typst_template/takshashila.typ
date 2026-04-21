@@ -171,7 +171,9 @@
   set text(fill: white, font: "TeX Gyre Pagella", size: 16pt)
   set par(spacing: 0.8em)
 
-  image("assets/main-logo-dark.png", width: 60mm)
+  if sys.inputs.at("has-logo", default: "false") == "true" {
+    image("assets/main-logo-dark.png", width: 60mm)
+  }
   v(20pt)
 
   [The Takshashila Institution is an independent centre for research and
