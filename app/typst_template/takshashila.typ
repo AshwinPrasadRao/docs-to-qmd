@@ -123,7 +123,7 @@
       set text(fill: primary, font: "TeX Gyre Pagella", size: 9pt, weight: "bold")
       grid(
         columns: (1fr, 1fr),
-        align(left)[#counter(page).display()],
+        align(left)[#context counter(page).display()],
         align(right)[TAKSHASHILA INSTITUTION],
       )
     },
