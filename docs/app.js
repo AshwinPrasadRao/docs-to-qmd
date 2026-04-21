@@ -62,7 +62,7 @@
       doctype:        fd.get("doctype")    || "",
       docversion:     fd.get("docversion") || "",
       pdf_filename:   fd.get("pdf_filename"),
-      render_pdf:     document.getElementById("render_pdf").checked,
+      render_pdf:     document.getElementById("render_pdf").checked ? "true" : "false",
       run_token:      runToken,
     };
 
